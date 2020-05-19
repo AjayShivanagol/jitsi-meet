@@ -25,6 +25,7 @@ import {
 } from '../participants';
 import { getLocalTracks, trackAdded, trackRemoved } from '../tracks';
 import {
+    getBackendSafePath,
     getBackendSafeRoomName,
     getJitsiMeetGlobalNS
 } from '../util';
@@ -426,7 +427,7 @@ export function createConference() {
                     ...config,
                     applicationName: getName(),
                     getWiFiStatsMethod: getJitsiMeetGlobalNS().getWiFiStats,
-                    confID: `${locationURL.host}${locationURL.pathname}`,
+                    confID: `${locationURL.host}${getBackendSafePath(locationURL.pathname)}`,
                     statisticsDisplayName: config.enableDisplayNameInStats ? nick : undefined,
                     statisticsId: config.enableEmailInStats ? email : undefined
                 });

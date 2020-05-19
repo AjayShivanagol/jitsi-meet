@@ -116,7 +116,10 @@ import {
     trackAdded,
     trackRemoved
 } from './react/features/base/tracks';
-import { getJitsiMeetGlobalNS } from './react/features/base/util';
+import {
+    getBackendSafePath,
+    getJitsiMeetGlobalNS
+} from './react/features/base/util';
 import { showDesktopPicker } from './react/features/desktop-picker';
 import { appendSuffix } from './react/features/display-name';
 import { setE2EEKey } from './react/features/e2ee';
@@ -1380,7 +1383,8 @@ export default {
 
         options.applicationName = interfaceConfig.APP_NAME;
         options.getWiFiStatsMethod = this._getWiFiStatsMethod;
-        options.confID = `${locationURL.host}${locationURL.pathname}`;
+        options.confID = `${locationURL.host}${getBackendSafePath(locationURL.pathname)}`;
+
         options.createVADProcessor = createRnnoiseProcessorPromise;
 
         // Disable CallStats, if requessted.
