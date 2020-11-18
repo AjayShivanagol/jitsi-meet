@@ -114,7 +114,7 @@ import {
     submitFeedback
 } from './react/features/feedback';
 import { showNotification } from './react/features/notifications';
-import { mediaPermissionPromptVisibilityChanged } from './react/features/overlay';
+import { mediaPermissionPromptVisibilityChanged, toggleSlowGUMOverlay } from './react/features/overlay';
 import { suspendDetected } from './react/features/power-monitor';
 import {
     initPrejoin,
@@ -498,6 +498,11 @@ export default {
                     mediaPermissionPromptVisibilityChanged(true, browserName))
         );
 
+        JitsiMeetJS.mediaDevices.addEventListener(
+            JitsiMediaDevicesEvents.SLOW_GET_USER_MEDIA,
+            () => APP.store.dispatch(toggleSlowGUMOverlay(true))
+        );
+
         let tryCreateLocalTracks;
 
         // FIXME is there any simpler way to rewrite this spaghetti below ?
@@ -508,7 +513,11 @@ export default {
                         return [ desktopStream ];
                     }
 
-                    return createLocalTracksF({ devices: [ 'audio' ] }, true)
+                    return createLocalTracksF({
+                        devices: [ 'audio' ],
+                        firePermissionPromptIsShownEvent: true,
+                        fireSlowPromiseEvent: true
+                    }, true)
                         .then(([ audioStream ]) =>
                             [ desktopStream, audioStream ])
                         .catch(error => {
@@ -522,7 +531,11 @@ export default {
                     errors.screenSharingError = error;
 
                     return requestedAudio
-                        ? createLocalTracksF({ devices: [ 'audio' ] }, true)
+                        ? createLocalTracksF({
+                            devices: [ 'audio' ],
+                            firePermissionPromptIsShownEvent: true,
+                            fireSlowPromiseEvent: true
+                        }, true)
                         : [];
                 })
                 .catch(error => {
@@ -534,7 +547,11 @@ export default {
             // Resolve with no tracks
             tryCreateLocalTracks = Promise.resolve([]);
         } else {
-            tryCreateLocalTracks = createLocalTracksF({ devices: initialDevices }, true)
+            tryCreateLocalTracks = createLocalTracksF({
+                devices: initialDevices,
+                firePermissionPromptIsShownEvent: true,
+                fireSlowPromiseEvent: true
+            })
                 .catch(err => {
                     if (requestedAudio && requestedVideo) {
 
@@ -542,7 +559,11 @@ export default {
                         errors.audioAndVideoError = err;
 
                         return (
-                            createLocalTracksF({ devices: [ 'audio' ] }, true));
+                            createLocalTracksF({
+                                devices: [ 'audio' ],
+                                firePermissionPromptIsShownEvent: true,
+                                fireSlowPromiseEvent: true
+                            }));
                     } else if (requestedAudio && !requestedVideo) {
                         errors.audioOnlyError = err;
 
@@ -563,7 +584,11 @@ export default {
 
                     // Try video only...
                     return requestedVideo
-                        ? createLocalTracksF({ devices: [ 'video' ] }, true)
+                        ? createLocalTracksF({
+                            devices: [ 'video' ],
+                            firePermissionPromptIsShownEvent: true,
+                            fireSlowPromiseEvent: true
+                        })
                         : [];
                 })
                 .catch(err => {
@@ -583,6 +608,7 @@ export default {
         // the user inputs their credentials, but the dialog would be
         // overshadowed by the overlay.
         tryCreateLocalTracks.then(tracks => {
+            APP.store.dispatch(toggleSlowGUMOverlay(false));
             APP.store.dispatch(mediaPermissionPromptVisibilityChanged(false));
 
             return tracks;
@@ -846,7 +872,7 @@ export default {
                 showUI && APP.store.dispatch(notifyMicError(error));
             };
 
-            createLocalTracksF({ devices: [ 'audio' ] }, false)
+            createLocalTracksF({ devices: [ 'audio' ] })
                 .then(([ audioTrack ]) => audioTrack)
                 .catch(error => {
                     maybeShowErrorDialog(error);
@@ -960,7 +986,7 @@ export default {
             //
             // FIXME when local track creation is moved to react/redux
             // it should take care of the use case described above
-            createLocalTracksF({ devices: [ 'video' ] }, false)
+            createLocalTracksF({ devices: [ 'video' ] })
                 .then(([ videoTrack ]) => videoTrack)
                 .catch(error => {
                     // FIXME should send some feedback to the API on error ?
