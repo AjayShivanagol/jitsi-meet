@@ -16,30 +16,22 @@ import { shouldDisplayTileView } from '../../../react/features/video-layout';
 /* eslint-enable no-unused-vars */
 import UIEvents from '../../../service/UI/UIEvents';
 
-import SmallVideo from './SmallVideo';
 
 /**
  *
  */
-export default class LocalVideo extends SmallVideo {
+export default class LocalVideo {
     /**
      *
      * @param {*} emitter
-     * @param {*} streamEndedCallback
      */
-    constructor(emitter, streamEndedCallback) {
-        super();
+    constructor(emitter) {
         this.videoSpanId = 'localVideoContainer';
-        this.streamEndedCallback = streamEndedCallback;
         this.container = this.createContainer();
         this.$container = $(this.container);
         this.isLocal = true;
-        this._setThumbnailSize();
-        this.updateDOMLocation();
         this.renderThumbnail();
 
-        this.localVideoId = null;
-        this.bindHoverHandler();
         if (!config.disableLocalVideoFlip) {
             this._buildContextMenu();
         }
@@ -50,9 +42,7 @@ export default class LocalVideo extends SmallVideo {
                 return APP.conference.getMyUserId();
             }
         });
-        this.initBrowserSpecificProperties();
 
-        this.container.onclick = this._onContainerClick;
     }
 
     /**
@@ -84,53 +74,12 @@ export default class LocalVideo extends SmallVideo {
      * @param {*} stream
      */
     changeVideo(stream) {
-        this.localVideoId = `localVideo_${stream.getId()}`;
-
         // eslint-disable-next-line eqeqeq
         const isVideo = stream.videoType != 'desktop';
         const settings = APP.store.getState()['features/base/settings'];
 
         this._enableDisableContextMenu(isVideo);
         this.setFlipX(isVideo ? settings.localFlipX : false);
-
-        const endedHandler = () => {
-            this._notifyOfStreamEnded();
-            stream.off(JitsiTrackEvents.LOCAL_TRACK_STOPPED, endedHandler);
-        };
-
-        stream.on(JitsiTrackEvents.LOCAL_TRACK_STOPPED, endedHandler);
-    }
-
-    /**
-     * Notify any subscribers of the local video stream ending.
-     *
-     * @private
-     * @returns {void}
-     */
-    _notifyOfStreamEnded() {
-        if (this.streamEndedCallback) {
-            this.streamEndedCallback(this.id);
-        }
-    }
-
-    /**
-     * Shows or hides the local video container.
-     * @param {boolean} true to make the local video container visible, false
-     * otherwise
-     */
-    setVisible(visible) {
-        // We toggle the hidden class as an indication to other interested parties
-        // that this container has been hidden on purpose.
-        this.$container.toggleClass('hidden');
-
-        // We still show/hide it as we need to overwrite the style property if we
-        // want our action to take effect. Toggling the display property through
-        // the above css class didn't succeed in overwriting the style.
-        if (visible) {
-            this.$container.show();
-        } else {
-            this.$container.hide();
-        }
     }
 
     /**
@@ -139,13 +88,10 @@ export default class LocalVideo extends SmallVideo {
      */
     setFlipX(val) {
         this.emitter.emit(UIEvents.LOCAL_FLIPX_CHANGED, val);
-        if (!this.localVideoId) {
-            return;
-        }
         if (val) {
-            this.selectVideoElement().addClass('flipVideoX');
+            $($(this.container).find('video')[0]).addClass('flipVideoX');
         } else {
-            this.selectVideoElement().removeClass('flipVideoX');
+            $($(this.container).find('video')[0]).removeClass('flipVideoX');
         }
     }
 
@@ -189,25 +135,5 @@ export default class LocalVideo extends SmallVideo {
         if (this.$container.contextMenu) {
             this.$container.contextMenu(enable);
         }
-    }
-
-    /**
-     * Places the {@code LocalVideo} in the DOM based on the current video layout.
-     *
-     * @returns {void}
-     */
-    updateDOMLocation() {
-        if (!this.container) {
-            return;
-        }
-        if (this.container.parentElement) {
-            this.container.parentElement.removeChild(this.container);
-        }
-
-        const appendTarget = shouldDisplayTileView(APP.store.getState())
-            ? document.getElementById('localVideoTileViewContainer')
-            : document.getElementById('filmstripLocalVideoThumbnail');
-
-        appendTarget && appendTarget.appendChild(this.container);
     }
 }

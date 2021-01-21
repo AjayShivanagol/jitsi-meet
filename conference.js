@@ -2290,7 +2290,11 @@ export default {
             // There is no guarantee another event will trigger the update
             // immediately and in all situations, for example because a remote
             // participant is having connection trouble so no status changes.
-            APP.UI.updateAllVideos();
+            const displayedUserId = APP.UI.getLargeVideoID();
+
+            if (displayedUserId) {
+                APP.UI.updateLargeVideo(displayedUserId, true);
+            }
         });
 
         APP.UI.addListener(
